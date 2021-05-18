@@ -1,18 +1,27 @@
 <template>
-  <div class="bg-gray-100">
-    <h1>Hello</h1>
+  <div>
+    <h1>收藏</h1>
+    {{ booksProperty }}
+    <button @click="reloadCollection">重新讀取藏書</button>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
+import { defineComponent, reactive, toRefs } from "vue"
+import {
+  booksProperty,
+  reloadCollection,
+} from "@/services/bookCollectionServices"
 
 export default defineComponent({
   name: "App",
-});
+  setup() {
+    const state = reactive({})
+
+    return {
+      booksProperty,
+      reloadCollection,
+    }
+  },
+})
 </script>
-<style lang="css">
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-</style>
