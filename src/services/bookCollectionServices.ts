@@ -63,29 +63,26 @@ export async function reloadCollection() {
   state.currentLoadSeries = 0
   state.lastLoadSeries = bookNeedLoadSeries.length
 
-  const chunks = lodash(bookNeedLoadSeries)
-    .chunk(5)
-    .value()
-  for (let index = 0; index < chunks.length; index++) {
-    const chunk = chunks[index]
-    const loadChunk = chunk.map(
-      book =>
-        new Promise(async (resolve, reject) => {
-          try {
-            book.series = await loadSeries(book.id)
-            state.currentLoadSeries! += 1
-            saveState()
-            resolve(true)
-          } catch (error) {
-            resolve(false)
-          }
-        })
-    )
-    await Promise.all(loadChunk)
-    await new Promise(resolve => {
-      setTimeout(() => resolve(null), 250)
-    })
+  async function processNextBook() {
+    const book = bookNeedLoadSeries.shift()
+    if (!book) return false
+    try {
+      book.series = await loadSeries(book.id)
+    } catch (error) {}
+    state.currentLoadSeries! += 1
+    saveState()
+    return true
   }
+
+  async function pipline() {
+    while (true) {
+      const result = await processNextBook()
+      if (!result) break
+      await new Promise(resolve => setTimeout(() => resolve(true), 300))
+    }
+  }
+
+  await Promise.all([pipline(), pipline(), pipline(), pipline(), pipline()])
 
   state.currentLoadSeries = null
   state.lastLoadSeries = null
