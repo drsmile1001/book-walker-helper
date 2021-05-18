@@ -5,9 +5,7 @@
   "description": "Book Walker 助手",
   "default_locale": "zh-TW",
   "permissions": [
-    "activeTab",
-    "<all_urls>",
-    "*://*/*"
+    "*://www.bookwalker.com.tw/*"
   ],
   "icons": {
     "16": "icons/16.png",
