@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="bg-gray-100">
     <h1>Hello</h1>
   </div>
 </template>
@@ -11,3 +11,8 @@ export default defineComponent({
   name: "App",
 });
 </script>
+<style lang="css">
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+</style>
