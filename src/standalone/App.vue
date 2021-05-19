@@ -66,6 +66,10 @@
         </div>
       </template>
     </template>
+    <div>
+      Icons made by <a href="" title="srip">srip</a> from
+      <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a>
+    </div>
   </div>
 </template>
 

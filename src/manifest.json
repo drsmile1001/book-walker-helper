@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "__MSG_extName__",
-  "homepage_url": "http://localhost:8080/",
+  "homepage_url": "https://github.com/drsmile1001/book-walker-helper",
   "description": "Book Walker 助手",
   "default_locale": "zh-TW",
   "permissions": [
@@ -9,8 +9,9 @@
   ],
   "icons": {
     "16": "icons/16.png",
-    "48": "icons/48.png",
-    "128": "icons/128.png"
+    "24": "icons/24.png",
+    "32": "icons/32.png",
+    "64": "icons/64.png"
   },
   "background": {
     "scripts": [
@@ -21,8 +22,9 @@
   "browser_action": {
     "default_title": "__MSG_extName__",
     "default_icon": {
-      "19": "icons/19.png",
-      "38": "icons/38.png"
+      "16": "icons/16.png",
+      "24": "icons/24.png",
+      "32": "icons/32.png"
     }
   }
 }
