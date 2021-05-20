@@ -23,10 +23,10 @@ export const booksProperty = computed(() => state.books)
 export const loading = computed(() => state.loading)
 export const loadingProgress = computed(() =>
   state.currentLoadPage != null
-    ? `藏書載入中 ${state.currentLoadPage} / ${state.lastLoadPage}`
+    ? `藏書載入中 ${state.currentLoadPage} / ${state.lastLoadPage ?? 1}`
     : state.lastLoadSeries != null
-    ? `系列資料載入中 ${state.currentLoadSeries} / ${state.lastLoadSeries}`
-    : ""
+      ? `系列資料載入中 ${state.currentLoadSeries} / ${state.lastLoadSeries}`
+      : ""
 )
 function saveState() {
   localStorage.setItem("books", JSON.stringify(state.books))
@@ -68,7 +68,7 @@ export async function reloadCollection() {
     if (!book) return false
     try {
       book.series = await loadSeries(book.id)
-    } catch (error) {}
+    } catch (error) { }
     state.currentLoadSeries! += 1
     saveState()
     return true
