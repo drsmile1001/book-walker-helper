@@ -1,6 +1,6 @@
 import { computed, reactive } from "vue"
 import ky from "ky"
-import lodash from "lodash"
+import { parallelMap } from "@/utilities/Parallel"
 
 const domParser = new DOMParser()
 
@@ -17,17 +17,13 @@ const state = reactive({
   lastLoadPage: null as number | null,
   currentLoadSeries: null as number | null,
   lastLoadSeries: null as number | null,
+  loadingMessage: null as { msg: string; error?: boolean } | null,
 })
 
 export const booksProperty = computed(() => state.books)
 export const loading = computed(() => state.loading)
-export const loadingProgress = computed(() =>
-  state.currentLoadPage != null
-    ? `藏書載入中 ${state.currentLoadPage} / ${state.lastLoadPage ?? 1}`
-    : state.lastLoadSeries != null
-      ? `系列資料載入中 ${state.currentLoadSeries} / ${state.lastLoadSeries}`
-      : ""
-)
+export const loadingMessage = computed(() => state.loadingMessage)
+
 function saveState() {
   localStorage.setItem("books", JSON.stringify(state.books))
 }
@@ -39,8 +35,25 @@ export async function reloadCollection() {
   state.currentLoadPage = 1
   state.lastLoadPage = null
   while (true) {
-    const { doc, books } = await loadAvailableBookList(state.currentLoadPage)
-    books
+    const { doc, books, error } = await loadAvailableBookList(
+      state.currentLoadPage
+    )
+    if (error === "NO_LOGIN") {
+      state.loadingMessage = {
+        msg: "解析藏書失敗！請檢查是否已登入 Book Walker 網站。",
+        error: true,
+      }
+      return
+    } else if (error === "PARSING_ERROR") {
+      state.loadingMessage = {
+        msg:
+          "解析藏書失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。",
+        error: true,
+      }
+      return
+    }
+
+    books!
       .map(book => {
         const series = originBooks.find(old => old.id === book.id)?.series
         return <Book>{
@@ -52,10 +65,14 @@ export async function reloadCollection() {
       .forEach(book => state.books.push(book))
     saveState()
     if (state.lastLoadPage === null) {
-      state.lastLoadPage = parsePages(doc)
+      state.lastLoadPage = parsePages(doc!)
     }
     if (state.currentLoadPage >= state.lastLoadPage) break
     state.currentLoadPage += 1
+    state.loadingMessage = {
+      msg: `藏書資料載入中 ${state.currentLoadPage} / ${state.lastLoadPage ??
+        1}`,
+    }
   }
   state.currentLoadPage = null
   state.lastLoadPage = null
@@ -63,57 +80,66 @@ export async function reloadCollection() {
   state.currentLoadSeries = 0
   state.lastLoadSeries = bookNeedLoadSeries.length
 
-  async function processNextBook() {
-    const book = bookNeedLoadSeries.shift()
-    if (!book) return false
-    try {
+  await parallelMap(
+    bookNeedLoadSeries,
+    async book => {
       book.series = await loadSeries(book.id)
-    } catch (error) { }
-    state.currentLoadSeries! += 1
-    saveState()
-    return true
-  }
-
-  async function pipline() {
-    while (true) {
-      const result = await processNextBook()
-      if (!result) break
-      await new Promise(resolve => setTimeout(() => resolve(true), 300))
+      saveState()
+    },
+    5,
+    done => {
+      state.currentLoadSeries = done
+      state.loadingMessage = {
+        msg: `系列資料載入中 ${state.currentLoadSeries} / ${state.lastLoadSeries}`,
+      }
     }
-  }
-
-  await Promise.all([pipline(), pipline(), pipline(), pipline(), pipline()])
-
+  )
   state.currentLoadSeries = null
   state.lastLoadSeries = null
   state.loading = false
+  state.loadingMessage = null
 }
 
-async function loadAvailableBookList(page: number) {
-  const html = await ky
-    .get(
-      `https://www.bookwalker.com.tw/member/available_book_list?page=${page}`
-    )
-    .text()
-  const doc = domParser.parseFromString(html, "text/html")
-  const books = Array.from(
-    doc.getElementById("order_book")!.getElementsByClassName("buy_info")
-  ).map(row => {
-    const name = row.getElementsByClassName("buy_book")[0].innerHTML
-    const id = parseInt(
-      (row.getElementsByClassName("bookbor")[0] as HTMLImageElement).src
-        .substring("https://image.bookwalker.com.tw/upload/product/".length)
-        .split("/")[0]
-    )
-    return <Book>{
-      name,
-      id,
-      series: null,
+async function loadAvailableBookList(
+  page: number
+): Promise<{
+  doc?: Document
+  books?: Book[]
+  error?: "NO_LOGIN" | "PARSING_ERROR"
+}> {
+  const response = await ky.get(
+    `https://www.bookwalker.com.tw/member/available_book_list?page=${page}`
+  )
+  if (response.redirected)
+    return {
+      error: "NO_LOGIN",
     }
-  })
-  return {
-    doc,
-    books,
+  const html = await response.text()
+  try {
+    const doc = domParser.parseFromString(html, "text/html")
+    const books = Array.from(
+      doc.getElementById("order_book")!.getElementsByClassName("buy_info")
+    ).map(row => {
+      const name = row.getElementsByClassName("buy_book")[0].innerHTML
+      const id = parseInt(
+        (row.getElementsByClassName("bookbor")[0] as HTMLImageElement).src
+          .substring("https://image.bookwalker.com.tw/upload/product/".length)
+          .split("/")[0]
+      )
+      return <Book>{
+        name,
+        id,
+        series: null,
+      }
+    })
+    return {
+      doc,
+      books,
+    }
+  } catch (error) {
+    return {
+      error: "PARSING_ERROR",
+    }
   }
 }
 
