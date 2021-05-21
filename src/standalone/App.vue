@@ -40,25 +40,27 @@
         </div>
       </div>
 
-      <template v-if="loadingSeries.length">
-        <BookList title="尚未解析系列">
-          <BookEntry v-for="book in loadingSeries" :key="book.id" :book="book">
-          </BookEntry>
-        </BookList>
+      <template v-if="seriesCollection.length">
+        <template v-for="series in seriesCollection" :key="series.name">
+          <BookList :title="series.name" isSeries :top="series.top">
+            <BookEntry v-for="book in series.books" :key="book.id" :book="book">
+            </BookEntry>
+          </BookList>
+        </template>
       </template>
+
       <template v-if="noSeries.length">
         <BookList title="非系列書">
           <BookEntry v-for="book in noSeries" :key="book.id" :book="book">
           </BookEntry>
         </BookList>
       </template>
-      <template v-if="seriesCollection.length">
-        <template v-for="series in seriesCollection" :key="series.name">
-          <BookList :title="series.name">
-            <BookEntry v-for="book in series.books" :key="book.id" :book="book">
-            </BookEntry>
-          </BookList>
-        </template>
+
+      <template v-if="loadingSeries.length">
+        <BookList title="尚未解析系列">
+          <BookEntry v-for="book in loadingSeries" :key="book.id" :book="book">
+          </BookEntry>
+        </BookList>
       </template>
       <footer>
         <div
@@ -83,6 +85,7 @@ import {
   reloadCollection,
   loading,
   loadingMessage,
+  topSeries,
 } from "@/services/bookCollectionServices"
 import lodash from "lodash"
 import BookEntry from "@/components/BookEntry.vue"
@@ -112,11 +115,12 @@ export default defineComponent({
         .toPairs()
         .map(([name, books]) => ({
           name,
+          top: topSeries.value.includes(name),
           books: lodash(books)
             .orderBy((book) => book.id)
             .value(),
         }))
-        .orderBy((group) => group.name)
+        .orderBy((group) => (group.top ? `!${group.name}` : group.name))
         .value()
     )
 

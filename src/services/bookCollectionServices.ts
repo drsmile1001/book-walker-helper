@@ -14,25 +14,13 @@ export interface Book {
 
 const state = reactive({
   books: JSON.parse(localStorage.getItem("books") ?? "[]") as Book[],
+  topSeries: JSON.parse(localStorage.getItem("topSeries") ?? "[]") as string[],
   loading: false,
   loadingMessage: null as { msg: string; error?: boolean } | null,
 })
 
-export function switchFavorite(bookId: number) {
-  const found = state.books.find(book => book.id == bookId)
-  if (!found) return
-  found.favorite = !found.favorite
-  saveBooks()
-}
-
-export function switchBookmark(bookId: number) {
-  const found = state.books.find(book => book.id == bookId)
-  if (!found) return
-  found.bookmark = !found.bookmark
-  saveBooks()
-}
-
 export const booksProperty = computed(() => state.books)
+export const topSeries = computed(() => state.topSeries)
 export const loading = computed(() => state.loading)
 export const loadingMessage = computed(() => state.loadingMessage)
 
@@ -189,9 +177,32 @@ async function loadSeries(id: number) {
       .lastElementChild!.previousElementSibling!
       .firstElementChild! as HTMLAnchorElement
 
-    return element.href.includes("/search/?series=") ? element.innerHTML : ""
+    return element.href.includes("/search/?series=")
+      ? element.innerHTML.substring(0, element.innerHTML.length - 2).trim()
+      : ""
   } catch (error) {
     console.error("解析系列錯誤", doc, doc.getElementById("breadcrumb_list"))
     throw error
   }
+}
+
+export function switchFavorite(bookId: number) {
+  const found = state.books.find(book => book.id == bookId)
+  if (!found) return
+  found.favorite = !found.favorite
+  saveBooks()
+}
+
+export function switchBookmark(bookId: number) {
+  const found = state.books.find(book => book.id == bookId)
+  if (!found) return
+  found.bookmark = !found.bookmark
+  saveBooks()
+}
+
+export function switchTopSeries(name: string) {
+  if (state.topSeries.includes(name))
+    state.topSeries = state.topSeries.filter(s => s != name)
+  else state.topSeries.push(name)
+  localStorage.setItem("topSeries", JSON.stringify(state.topSeries))
 }
