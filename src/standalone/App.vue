@@ -5,7 +5,13 @@
         <h1 class="text-gray-900 text-3xl font-medium tracking-tight mt-2">
           藏書
         </h1>
-        <div class="flex-grow flex flex-col justify-center items-end">
+        <div class="flex-grow flex flex-row justify-end items-center">
+          <a
+            class="px-3 py-2 text-blue-500"
+            target="_blank"
+            href="https://www.bookwalker.com.tw/member/available_book_list"
+            >Book Walker 個人專頁</a
+          >
           <button
             v-if="!loading"
             type="button"
