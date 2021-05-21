@@ -13,8 +13,6 @@ interface Book {
 const state = reactive({
   books: JSON.parse(localStorage.getItem("books") ?? "[]") as Book[],
   loading: false,
-  currentLoadPage: null as number | null,
-  lastLoadPage: null as number | null,
   currentLoadSeries: null as number | null,
   lastLoadSeries: null as number | null,
   loadingMessage: null as { msg: string; error?: boolean } | null,
@@ -32,28 +30,26 @@ export async function reloadCollection() {
   state.loading = true
   const originBooks = state.books
   state.books = []
-  state.currentLoadPage = 1
-  state.lastLoadPage = null
-  while (true) {
-    const { doc, books, error } = await loadAvailableBookList(
-      state.currentLoadPage
-    )
-    if (error === "NO_LOGIN") {
-      state.loadingMessage = {
-        msg: "解析藏書失敗！請檢查是否已登入 Book Walker 網站。",
-        error: true,
-      }
-      return
-    } else if (error === "PARSING_ERROR") {
-      state.loadingMessage = {
-        msg:
-          "解析藏書失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。",
-        error: true,
-      }
-      return
-    }
 
-    books!
+  const { doc, books, error } = await loadAvailableBookList(1)
+  if (error === "NO_LOGIN") {
+    state.loadingMessage = {
+      msg: "解析藏書失敗！請檢查是否已登入 Book Walker 網站。",
+      error: true,
+    }
+    return
+  } else if (error === "PARSING_ERROR") {
+    state.loadingMessage = {
+      msg:
+        "解析藏書失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。",
+      error: true,
+    }
+    return
+  }
+
+  const pageCount = parsePageCount(doc!)
+  function recordBookList(books: Book[]) {
+    books
       .map(book => {
         const series = originBooks.find(old => old.id === book.id)?.series
         return <Book>{
@@ -64,18 +60,38 @@ export async function reloadCollection() {
       })
       .forEach(book => state.books.push(book))
     saveState()
-    if (state.lastLoadPage === null) {
-      state.lastLoadPage = parsePages(doc!)
-    }
-    if (state.currentLoadPage >= state.lastLoadPage) break
-    state.currentLoadPage += 1
-    state.loadingMessage = {
-      msg: `藏書資料載入中 ${state.currentLoadPage} / ${state.lastLoadPage ??
-        1}`,
-    }
   }
-  state.currentLoadPage = null
-  state.lastLoadPage = null
+  recordBookList(books!)
+
+  state.loadingMessage = {
+    msg: `藏書資料載入中 1 / ${pageCount}`,
+  }
+
+  const pagesNeedLoad = Array.from({ length: pageCount - 1 }, (_, i) => i + 2)
+  const loadPageResults = await parallelMap(
+    pagesNeedLoad,
+    async page => {
+      const { books, error } = await loadAvailableBookList(page)
+      if (!!error) return error
+      recordBookList(books!)
+      return null
+    },
+    5,
+    done => {
+      state.loadingMessage = {
+        msg: `藏書資料載入中 ${done + 1} / ${pageCount}`,
+      }
+    }
+  )
+
+  if (loadPageResults.some(error => error !== null)) {
+    state.loadingMessage = {
+      msg: `解析藏書有部分失敗！請重試。`,
+      error: true,
+    }
+    return
+  }
+
   const bookNeedLoadSeries = state.books.filter(book => book.series === null)
   state.currentLoadSeries = 0
   state.lastLoadSeries = bookNeedLoadSeries.length
@@ -143,7 +159,7 @@ async function loadAvailableBookList(
   }
 }
 
-function parsePages(doc: Document) {
+function parsePageCount(doc: Document) {
   return parseInt(
     doc.getElementsByClassName("bw_pagination")[0].lastElementChild!
       .previousElementSibling!.firstElementChild!.innerHTML
