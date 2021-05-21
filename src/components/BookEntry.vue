@@ -17,7 +17,10 @@
     </div>
     <div class="flex justify-around">
       <a :href="shopUrl" target="_blank">
-        <svg class="w-5 h-5 text-green-500" viewBox="0 0 24 24">
+        <svg
+          class="w-5 h-5 text-green-500 hover:opacity-75"
+          viewBox="0 0 24 24"
+        >
           <path
             fill="currentColor"
             d="M12,18H6V14H12M21,14V12L20,7H4L3,12V14H4V20H14V14H18V20H20V14M20,4H4V6H20V4Z"
@@ -25,7 +28,7 @@
         </svg>
       </a>
       <svg
-        class="w-5 h-5 text-yellow-500 cursor-pointer"
+        class="w-5 h-5 text-yellow-500 cursor-pointer hover:opacity-75"
         viewBox="0 0 24 24"
         @click="switchFavorite(book.id)"
       >
@@ -41,7 +44,7 @@
         />
       </svg>
       <svg
-        class="w-5 h-5 text-red-400 cursor-pointer"
+        class="w-5 h-5 text-red-400 cursor-pointer hover:opacity-75"
         viewBox="0 0 24 24"
         @click="switchBookmark(book.id)"
       >
