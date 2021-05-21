@@ -42,38 +42,20 @@
 
       <template v-if="loadingSeries.length">
         <BookList title="尚未解析系列">
-          <BookEntry
-            v-for="book in loadingSeries"
-            :key="book.id"
-            :bookName="book.name"
-            :bookImage="`https://image.bookwalker.com.tw/upload/product/${book.id}/${book.id}_1.jpg`"
-            :bookUrl="`https://www.bookwalker.com.tw/browserViewer/${book.id}/read`"
-          >
+          <BookEntry v-for="book in loadingSeries" :key="book.id" :book="book">
           </BookEntry>
         </BookList>
       </template>
       <template v-if="noSeries.length">
         <BookList title="非系列書">
-          <BookEntry
-            v-for="book in noSeries"
-            :key="book.id"
-            :bookName="book.name"
-            :bookImage="`https://image.bookwalker.com.tw/upload/product/${book.id}/${book.id}_1.jpg`"
-            :bookUrl="`https://www.bookwalker.com.tw/browserViewer/${book.id}/read`"
-          >
+          <BookEntry v-for="book in noSeries" :key="book.id" :book="book">
           </BookEntry>
         </BookList>
       </template>
       <template v-if="seriesCollection.length">
         <template v-for="series in seriesCollection" :key="series.name">
           <BookList :title="series.name">
-            <BookEntry
-              v-for="book in series.books"
-              :key="book.id"
-              :bookName="book.name"
-              :bookImage="`https://image.bookwalker.com.tw/upload/product/${book.id}/${book.id}_1.jpg`"
-              :bookUrl="`https://www.bookwalker.com.tw/browserViewer/${book.id}/read`"
-            >
+            <BookEntry v-for="book in series.books" :key="book.id" :book="book">
             </BookEntry>
           </BookList>
         </template>

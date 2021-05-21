@@ -4,10 +4,12 @@ import { parallelMap } from "@/utilities/Parallel"
 
 const domParser = new DOMParser()
 
-interface Book {
+export interface Book {
   id: number
   name: string
   series: string | null
+  favorite: boolean
+  bookmark: boolean
 }
 
 const state = reactive({
@@ -16,11 +18,25 @@ const state = reactive({
   loadingMessage: null as { msg: string; error?: boolean } | null,
 })
 
+export function switchFavorite(bookId: number) {
+  const found = state.books.find(book => book.id == bookId)
+  if (!found) return
+  found.favorite = !found.favorite
+  saveBooks()
+}
+
+export function switchBookmark(bookId: number) {
+  const found = state.books.find(book => book.id == bookId)
+  if (!found) return
+  found.bookmark = !found.bookmark
+  saveBooks()
+}
+
 export const booksProperty = computed(() => state.books)
 export const loading = computed(() => state.loading)
 export const loadingMessage = computed(() => state.loadingMessage)
 
-function saveState() {
+function saveBooks() {
   localStorage.setItem("books", JSON.stringify(state.books))
 }
 
@@ -49,15 +65,17 @@ export async function reloadCollection() {
   function recordBookList(books: Book[]) {
     books
       .map(book => {
-        const series = originBooks.find(old => old.id === book.id)?.series
+        const oldBook = originBooks.find(old => old.id === book.id)
         return <Book>{
           id: book.id,
           name: book.name,
-          series: series ?? null,
+          series: oldBook?.series ?? null,
+          favorite: oldBook?.favorite ?? false,
+          bookmark: oldBook?.bookmark ?? false,
         }
       })
       .forEach(book => state.books.push(book))
-    saveState()
+    saveBooks()
   }
   recordBookList(books!)
 
@@ -97,7 +115,7 @@ export async function reloadCollection() {
     bookNeedLoadSeries,
     async book => {
       book.series = await loadSeries(book.id)
-      saveState()
+      saveBooks()
     },
     5,
     done => {
