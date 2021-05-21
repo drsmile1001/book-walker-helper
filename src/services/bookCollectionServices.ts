@@ -13,8 +13,6 @@ interface Book {
 const state = reactive({
   books: JSON.parse(localStorage.getItem("books") ?? "[]") as Book[],
   loading: false,
-  currentLoadSeries: null as number | null,
-  lastLoadSeries: null as number | null,
   loadingMessage: null as { msg: string; error?: boolean } | null,
 })
 
@@ -93,8 +91,7 @@ export async function reloadCollection() {
   }
 
   const bookNeedLoadSeries = state.books.filter(book => book.series === null)
-  state.currentLoadSeries = 0
-  state.lastLoadSeries = bookNeedLoadSeries.length
+  const bookNeedLoadSeriesCount = bookNeedLoadSeries.length
 
   await parallelMap(
     bookNeedLoadSeries,
@@ -104,14 +101,11 @@ export async function reloadCollection() {
     },
     5,
     done => {
-      state.currentLoadSeries = done
       state.loadingMessage = {
-        msg: `系列資料載入中 ${state.currentLoadSeries} / ${state.lastLoadSeries}`,
+        msg: `系列資料載入中 ${done} / ${bookNeedLoadSeriesCount}`,
       }
     }
   )
-  state.currentLoadSeries = null
-  state.lastLoadSeries = null
   state.loading = false
   state.loadingMessage = null
 }
@@ -153,6 +147,7 @@ async function loadAvailableBookList(
       books,
     }
   } catch (error) {
+    console.error("解析藏書錯誤", error)
     return {
       error: "PARSING_ERROR",
     }
@@ -178,7 +173,7 @@ async function loadSeries(id: number) {
 
     return element.href.includes("/search/?series=") ? element.innerHTML : ""
   } catch (error) {
-    console.log("解析系列錯誤", doc, doc.getElementById("breadcrumb_list"))
+    console.error("解析系列錯誤", doc, doc.getElementById("breadcrumb_list"))
     throw error
   }
 }
