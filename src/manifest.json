@@ -3,7 +3,6 @@
   "name": "__MSG_extName__",
   "homepage_url": "https://github.com/drsmile1001/book-walker-helper",
   "description": "Book Walker 助手",
-  "default_locale": "zh-TW",
   "permissions": [
     "*://www.bookwalker.com.tw/*"
   ],
