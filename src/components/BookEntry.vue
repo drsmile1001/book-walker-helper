@@ -70,12 +70,8 @@
 
 
 <script lang="ts">
-import { Book } from "@/services/bookCollectionServices"
+import { Book, switchFavorite, switchBookmark } from "@/services/Repository"
 import { computed, defineComponent, PropType } from "vue"
-import {
-  switchFavorite,
-  switchBookmark,
-} from "@/services/bookCollectionServices"
 
 export default defineComponent({
   name: "Book",

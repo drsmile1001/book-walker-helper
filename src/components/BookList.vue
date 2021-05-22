@@ -4,10 +4,10 @@
       class="rounded-t-lg p-2 pl-4 border-b border-gray-200 mb-2 bg-gray-50 truncate"
     >
       <svg
-        v-if="isSeries"
+        v-if="seriesId"
         class="inline w-5 h-5 text-gray-500 hover:opacity-75 cursor-pointer"
         viewBox="0 0 24 24"
-        @click="switchTopSeries(title)"
+        @click="switchTopSeries(seriesId || 0)"
       >
         <path
           v-if="top"
@@ -21,7 +21,7 @@
         />
       </svg>
       <h2 class="inline ml-2 font-normal text-gray-500">
-        {{ isSeries ? `${title} 系列` : title }}
+        {{ seriesId ? `${title} 系列` : title }}
       </h2>
     </div>
 
@@ -33,13 +33,21 @@
         <slot></slot>
       </ul>
     </div>
+    <div
+      v-if="tags"
+      class="rounded-d-lg p-2 pl-4 border-b border-gray-200 mb-2 bg-gray-50"
+    >
+      <span class="mr-2 text-gray-400" v-for="tag in tags" :key="tag">{{
+        tag
+      }}</span>
+    </div>
   </div>
 </template>
 
 
 <script lang="ts">
-import { defineComponent } from "vue"
-import { switchTopSeries } from "@/services/bookCollectionServices"
+import { defineComponent, PropType } from "vue"
+import { switchTopSeries, Tag } from "@/services/Repository"
 
 export default defineComponent({
   name: "BookList",
@@ -48,13 +56,15 @@ export default defineComponent({
       type: String,
       required: true,
     },
-    isSeries: {
-      type: Boolean,
-      default: false,
+    seriesId: {
+      type: Number,
     },
     top: {
       type: Boolean,
       default: false,
+    },
+    tags: {
+      type: Array as PropType<Tag[]>,
     },
   },
   setup() {

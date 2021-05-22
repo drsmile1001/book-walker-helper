@@ -16,7 +16,7 @@
             v-if="!loading"
             type="button"
             class="flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-max"
-            @click="reloadCollection"
+            @click="collect"
           >
             重新讀取藏書
           </button>
@@ -39,10 +39,14 @@
           </div>
         </div>
       </div>
-
       <template v-if="seriesCollection.length">
-        <template v-for="series in seriesCollection" :key="series.name">
-          <BookList :title="series.name" isSeries :top="series.top">
+        <template v-for="series in seriesCollection" :key="series.seriesId">
+          <BookList
+            :title="series.seriesName"
+            :seriesId="series.seriesId"
+            :top="series.top"
+            :tags="series.tags"
+          >
             <BookEntry v-for="book in series.books" :key="book.id" :book="book">
             </BookEntry>
           </BookList>
@@ -80,13 +84,8 @@
 
 <script lang="ts">
 import { computed, defineComponent } from "vue"
-import {
-  booksProperty,
-  reloadCollection,
-  loading,
-  loadingMessage,
-  topSeries,
-} from "@/services/bookCollectionServices"
+import { collect, loading, loadingMessage } from "@/services/Collector"
+import { books, series, tags } from "@/services/Repository"
 import lodash from "lodash"
 import BookEntry from "@/components/BookEntry.vue"
 import BookList from "@/components/BookList.vue"
@@ -96,38 +95,49 @@ export default defineComponent({
   components: { BookEntry, BookList },
   setup() {
     const loadingSeries = computed(() =>
-      lodash(booksProperty.value.filter((book) => book.series === null))
+      lodash(books.value.filter((book) => !book.seriesIdChecked))
         .orderBy((book) => book.name)
         .value()
     )
 
     const noSeries = computed(() =>
-      lodash(booksProperty.value)
-        .filter((book) => book.series === "")
+      lodash(books.value)
+        .filter((book) => !!book.seriesIdChecked && !book.seriesId)
         .orderBy((book) => book.id)
         .value()
     )
 
     const seriesCollection = computed(() =>
-      lodash(booksProperty.value)
-        .filter((book) => book.series !== null && book.series !== "")
-        .groupBy((book) => book.series)
+      lodash(books.value)
+        .filter((book) => !!book.seriesIdChecked && !!book.seriesId)
+        .groupBy((book) => book.seriesId!)
         .toPairs()
-        .map(([name, books]) => ({
-          name,
-          top: topSeries.value.includes(name),
-          books: lodash(books)
-            .orderBy((book) => book.id)
-            .value(),
-        }))
-        .orderBy((group) => (group.top ? `!${group.name}` : group.name))
+        .map(([seriesId, books]) => {
+          const found = series.value.find((s) => s.id === parseInt(seriesId))
+          return {
+            seriesId,
+            top: found?.top ?? false,
+            seriesName: found?.name ?? "--",
+            books: lodash(books)
+              .orderBy((book) => book.id)
+              .value(),
+            tags: lodash(books)
+              .flatMap((b) => b.tags ?? [])
+              .uniq()
+              .map((t) => tags.value.find((s) => s.id == t)?.name ?? "--")
+              .value(),
+          }
+        })
+        .orderBy((group) =>
+          group.top ? `!${group.seriesName}` : group.seriesName
+        )
         .value()
     )
 
     const alerting = computed(() => !!loadingMessage.value?.error)
 
     return {
-      reloadCollection,
+      collect,
       loading,
       loadingMessage,
       loadingSeries,
