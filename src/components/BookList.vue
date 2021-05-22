@@ -49,13 +49,17 @@
         <slot></slot>
       </ul>
     </div>
-    <div
-      v-if="tags"
-      class="rounded-d-lg p-2 pl-4 border-b border-gray-200 mb-2 bg-gray-50"
-    >
-      <span class="mr-2 text-gray-400" v-for="tag in tags" :key="tag">{{
-        tag
-      }}</span>
+    <div class="rounded-d-lg p-2 pl-4 border-b border-gray-200 mb-2 bg-gray-50">
+      <div v-if="writers" class="leading-tight text-xs text-gray-400">
+        作者：
+        <span class="mr-2" v-for="writer in writers" :key="writer">{{
+          writer
+        }}</span>
+      </div>
+      <div v-if="tags" class="leading-tight text-xs text-gray-400">
+        標籤：
+        <span class="mr-2" v-for="tag in tags" :key="tag">{{ tag }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -79,8 +83,11 @@ export default defineComponent({
       type: Boolean,
       default: false,
     },
+    writers: {
+      type: Array as PropType<string[]>,
+    },
     tags: {
-      type: Array as PropType<Tag[]>,
+      type: Array as PropType<string[]>,
     },
   },
   setup(props) {

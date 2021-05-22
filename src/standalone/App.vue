@@ -46,6 +46,7 @@
             :seriesId="series.id"
             :top="series.top"
             :tags="series.tags"
+            :writers="series.writers"
           >
             <BookEntry v-for="book in series.books" :key="book.id" :book="book">
             </BookEntry>
@@ -121,6 +122,10 @@ export default defineComponent({
             seriesName: found?.name ?? "--",
             books: lodash(books)
               .orderBy((book) => book.id)
+              .value(),
+            writers: lodash(books)
+              .flatMap((b) => b.writer ?? [])
+              .uniq()
               .value(),
             tags: lodash(books)
               .flatMap((b) => b.tags ?? [])

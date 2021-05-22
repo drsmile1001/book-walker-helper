@@ -73,21 +73,24 @@ export async function collect() {
   }
 
   const bookLackDetails = books.value.filter(
-    book => !book.seriesIdChecked || !book.tagsChecked
+    book => !book.seriesIdChecked || !book.tagsChecked || !book.writerChecked
   )
   const bookLackDetailCount = bookLackDetails.length
 
   await parallelMap(
     bookLackDetails,
     async book => {
-      const { seriesId, seriesName, tags } = await fetchBookDetail(book.id)
+      const { seriesId, seriesName, tags, writers } = await fetchBookDetail(
+        book.id
+      )
       console.log(seriesId, seriesName)
       if (seriesId) await addSeries(seriesId, seriesName!)
       await addTags(tags)
       await updateBookDetail(
         book.id,
         seriesId,
-        tags.map(t => t.id)
+        tags.map(t => t.id),
+        writers
       )
     },
     5,
@@ -157,6 +160,7 @@ async function fetchBookDetail(
   seriesId: number | null
   seriesName: string | null
   tags: Tag[]
+  writers: string[]
 }> {
   const html = await ky
     .get(`https://www.bookwalker.com.tw/product/${id}`)
@@ -179,6 +183,11 @@ async function fetchBookDetail(
       0,
       seriesAnchor.innerHTML.length - 2
     )
+
+    const writers = Array.from(
+      doc.getElementById("writerinfo")!.getElementsByTagName("a")
+    ).map(a => a.innerHTML)
+
     const bookinfo_more = doc.getElementsByClassName("bookinfo_more")[0]!
     const tags = Array.from(bookinfo_more.getElementsByTagName("a"))
       .filter(a => a.href.includes("/search?tag="))
@@ -197,6 +206,7 @@ async function fetchBookDetail(
       seriesId,
       seriesName,
       tags,
+      writers,
     }
   } catch (error) {
     console.error(

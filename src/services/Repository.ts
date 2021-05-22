@@ -9,6 +9,8 @@ export interface Book {
   seriesId?: number | null
   tagsChecked?: boolean
   tags?: number[]
+  writerChecked?: boolean
+  writer?: string[]
   favorite?: boolean
   bookmark?: boolean
 }
@@ -59,7 +61,8 @@ export async function addBooks(books: Book[]) {
 export async function updateBookDetail(
   bookId: number,
   seriesId: number | null,
-  tags: number[]
+  tags: number[],
+  writers: string[]
 ) {
   const found = state.books.find(b => b.id === bookId)
   if (!found) return
@@ -68,6 +71,7 @@ export async function updateBookDetail(
   found.seriesIdChecked = true
   found.tags = tags
   found.tagsChecked = true
+  found.writer = writers
   writeBookLock.release()
   saveBooks()
 }
