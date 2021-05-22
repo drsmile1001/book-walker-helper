@@ -1,6 +1,6 @@
 {
   "manifest_version": 2,
-  "name": "__MSG_extName__",
+  "name": "Book Walker 助手",
   "homepage_url": "https://github.com/drsmile1001/book-walker-helper",
   "description": "Book Walker 助手",
   "permissions": [
@@ -19,7 +19,7 @@
     "persistent": false
   },
   "browser_action": {
-    "default_title": "__MSG_extName__",
+    "default_title": "Book Walker 助手",
     "default_icon": {
       "16": "icons/16.png",
       "24": "icons/24.png",
