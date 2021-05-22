@@ -40,10 +40,10 @@
         </div>
       </div>
       <template v-if="seriesCollection.length">
-        <template v-for="series in seriesCollection" :key="series.seriesId">
+        <template v-for="series in seriesCollection" :key="series.id">
           <BookList
             :title="series.seriesName"
-            :seriesId="series.seriesId"
+            :seriesId="series.id"
             :top="series.top"
             :tags="series.tags"
           >
@@ -113,9 +113,10 @@ export default defineComponent({
         .groupBy((book) => book.seriesId!)
         .toPairs()
         .map(([seriesId, books]) => {
-          const found = series.value.find((s) => s.id === parseInt(seriesId))
+          const id = parseInt(seriesId)
+          const found = series.value.find((s) => s.id === id)
           return {
-            seriesId,
+            id,
             top: found?.top ?? false,
             seriesName: found?.name ?? "--",
             books: lodash(books)

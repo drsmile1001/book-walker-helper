@@ -1,11 +1,11 @@
 <template>
   <div class="bg-white mb-6 rounded-lg">
     <div
-      class="rounded-t-lg p-2 pl-4 border-b border-gray-200 mb-2 bg-gray-50 truncate"
+      class="flex items-center rounded-t-lg p-2 px-4 border-b border-gray-200 mb-2 bg-gray-50"
     >
       <svg
         v-if="seriesId"
-        class="inline w-5 h-5 text-gray-500 hover:opacity-75 cursor-pointer"
+        class="flex-none w-5 h-5 text-gray-500 hover:opacity-75 cursor-pointer"
         viewBox="0 0 24 24"
         @click="switchTopSeries(seriesId || 0)"
       >
@@ -20,9 +20,25 @@
           d="M8,11H11V21H13V11H16L12,7L8,11M4,3V5H20V3H4Z"
         />
       </svg>
-      <h2 class="inline ml-2 font-normal text-gray-500">
+      <h2 class="flex-grow ml-2 font-normal text-gray-500">
         {{ seriesId ? `${title} 系列` : title }}
       </h2>
+      <a
+        class="flex-none"
+        v-if="seriesShopUrl"
+        :href="seriesShopUrl"
+        target="_blank"
+      >
+        <svg
+          class="w-5 h-5 text-green-500 hover:opacity-75"
+          viewBox="0 0 24 24"
+        >
+          <path
+            fill="currentColor"
+            d="M12,18H6V14H12M21,14V12L20,7H4L3,12V14H4V20H14V14H18V20H20V14M20,4H4V6H20V4Z"
+          />
+        </svg>
+      </a>
     </div>
 
     <div class="px-4 pb-4">
@@ -46,7 +62,7 @@
 
 
 <script lang="ts">
-import { defineComponent, PropType } from "vue"
+import { computed, defineComponent, PropType } from "vue"
 import { switchTopSeries, Tag } from "@/services/Repository"
 
 export default defineComponent({
@@ -67,9 +83,15 @@ export default defineComponent({
       type: Array as PropType<Tag[]>,
     },
   },
-  setup() {
+  setup(props) {
+    const seriesShopUrl = computed(() =>
+      props.seriesId
+        ? `https://www.bookwalker.com.tw/search?series=${props.seriesId}`
+        : null
+    )
     return {
       switchTopSeries,
+      seriesShopUrl,
     }
   },
 })

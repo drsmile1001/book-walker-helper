@@ -47,31 +47,29 @@ export async function collect() {
   state.loadingMessage = {
     msg: `藏書資料載入中 1 / ${bookPageCount}`,
   }
-  if (false) {
-    const bookPages = Array.from({ length: bookPageCount - 1 }, (_, i) => i + 2)
-    const fetchBooksResults = await parallelMap(
-      bookPages,
-      async page => {
-        const { books, error } = await fetchBooks(page)
-        if (!!error) return error
-        await addBooks(books!)
-        return null
-      },
-      5,
-      done => {
-        state.loadingMessage = {
-          msg: `藏書資料載入中 ${done + 1} / ${bookPageCount}`,
-        }
-      }
-    )
-
-    if (fetchBooksResults.some(error => error !== null)) {
+  const bookPages = Array.from({ length: bookPageCount - 1 }, (_, i) => i + 2)
+  const fetchBooksResults = await parallelMap(
+    bookPages,
+    async page => {
+      const { books, error } = await fetchBooks(page)
+      if (!!error) return error
+      await addBooks(books!)
+      return null
+    },
+    5,
+    done => {
       state.loadingMessage = {
-        msg: `解析藏書有部分失敗！請重試。`,
-        error: true,
+        msg: `藏書資料載入中 ${done + 1} / ${bookPageCount}`,
       }
-      return
     }
+  )
+
+  if (fetchBooksResults.some(error => error !== null)) {
+    state.loadingMessage = {
+      msg: `解析藏書有部分失敗！請重試。`,
+      error: true,
+    }
+    return
   }
 
   const bookLackDetails = books.value.filter(

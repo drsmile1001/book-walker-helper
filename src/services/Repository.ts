@@ -107,7 +107,7 @@ export async function switchTopSeries(id: number) {
   const found = state.series.find(s => s.id == id)
   if (!found) return
   await writeSeriesLock.acquireAsync()
-  found.top === !found.top
+  found.top = !found.top
   writeSeriesLock.release()
   saveSeries()
 }
