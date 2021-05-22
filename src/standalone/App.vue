@@ -71,8 +71,20 @@
         <div
           class="border-t border-gray-200 py-8 text-sm text-gray-500 text-center sm:text-left"
         >
-          <span class="block sm:inline">
-            Icons made by <a href="" title="srip">srip</a> from
+          <sapn class="block sm:inline mr-4">
+            Extension made by
+            <a href="https://github.com/drsmile1001/book-walker-helper"
+              >drsmile.1001</a
+            >
+          </sapn>
+
+          <sapn class="block sm:inline mr-4">
+            UI design by
+            <a href="https://github.com/caxerx">caxerx</a>
+          </sapn>
+
+          <span class="block sm:inline mr-4">
+            Icons made by srip from
             <a href="https://www.flaticon.com/" title="Flaticon"
               >www.flaticon.com</a
             >
