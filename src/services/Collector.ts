@@ -85,7 +85,6 @@ export async function collect() {
       const { seriesId, seriesName, tags, writers } = await fetchBookDetail(
         book.id
       )
-      console.log(seriesId, seriesName)
       if (seriesId) await addSeries(seriesId, seriesName!)
       await addTags(tags)
       await updateBookDetail(
