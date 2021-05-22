@@ -23,6 +23,12 @@
       <h2 class="flex-grow ml-2 font-normal text-gray-500">
         {{ seriesId ? `${title} 系列` : title }}
       </h2>
+      <span
+        class="flex-none mx-1 font-normal text-sm"
+        :class="notComplete ? ' text-green-500' : 'text-gray-500'"
+      >
+        {{ ownCount }} / {{ seriesCount || "--" }}
+      </span>
       <a
         class="flex-none"
         v-if="seriesShopUrl"
@@ -30,7 +36,8 @@
         target="_blank"
       >
         <svg
-          class="w-5 h-5 text-green-500 hover:opacity-75"
+          class="w-5 h-5 hover:opacity-75"
+          :class="notComplete ? ' text-green-500' : 'text-gray-500'"
           viewBox="0 0 24 24"
         >
           <path
@@ -67,7 +74,7 @@
 
 <script lang="ts">
 import { computed, defineComponent, PropType } from "vue"
-import { switchTopSeries, Tag } from "@/services/Repository"
+import { switchTopSeries } from "@/services/Repository"
 
 export default defineComponent({
   name: "BookList",
@@ -89,6 +96,12 @@ export default defineComponent({
     tags: {
       type: Array as PropType<string[]>,
     },
+    ownCount: {
+      type: Number,
+    },
+    seriesCount: {
+      type: Number,
+    },
   },
   setup(props) {
     const seriesShopUrl = computed(() =>
@@ -96,9 +109,17 @@ export default defineComponent({
         ? `https://www.bookwalker.com.tw/search?series=${props.seriesId}`
         : null
     )
+
+    const notComplete = computed(
+      () =>
+        !!props.ownCount &&
+        !!props.seriesCount &&
+        props.seriesCount > props.ownCount
+    )
     return {
       switchTopSeries,
       seriesShopUrl,
+      notComplete,
     }
   },
 })

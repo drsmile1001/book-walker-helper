@@ -47,6 +47,8 @@
             :top="series.top"
             :tags="series.tags"
             :writers="series.writers"
+            :ownCount="series.books.length"
+            :seriesCount="series.seriesCount"
           >
             <BookEntry v-for="book in series.books" :key="book.id" :book="book">
             </BookEntry>
@@ -144,6 +146,7 @@ export default defineComponent({
               .uniq()
               .map((t) => tags.value.find((s) => s.id == t)?.name ?? "--")
               .value(),
+            seriesCount: found?.bookCount,
           }
         })
         .orderBy((group) =>

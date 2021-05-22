@@ -9,6 +9,8 @@ import {
   Tag,
   addSeries,
   addTags,
+  series,
+  updateSeriesBookCount,
 } from "./Repository"
 
 const domParser = new DOMParser()
@@ -96,10 +98,26 @@ export async function collect() {
     5,
     done => {
       state.loadingMessage = {
-        msg: `詳細資料載入中 ${done} / ${bookLackDetailCount}`,
+        msg: `書本詳細資料載入中 ${done} / ${bookLackDetailCount}`,
       }
     }
   )
+
+  const seriesCount = series.value.length
+  await parallelMap(
+    series.value,
+    async s => {
+      const { bookCount } = await fetchSeries(s.id)
+      await updateSeriesBookCount(s.id, bookCount)
+    },
+    5,
+    done => {
+      state.loadingMessage = {
+        msg: `系列資料載入中 ${done} / ${seriesCount}`,
+      }
+    }
+  )
+
   state.loading = false
   state.loadingMessage = null
 }
@@ -215,5 +233,21 @@ async function fetchBookDetail(
       doc.getElementById("breadcrumb_list")
     )
     throw error
+  }
+}
+
+async function fetchSeries(
+  id: number
+): Promise<{
+  bookCount: number
+}> {
+  const html = await ky
+    .get(`https://www.bookwalker.com.tw/search?series=${id}`)
+    .text()
+  const doc = domParser.parseFromString(html, "text/html")
+  const paginationInfo = doc.getElementsByClassName("bw_more")[0].innerHTML!
+  const count = parseInt(paginationInfo.match(/共(\d+)筆/)![1])
+  return {
+    bookCount: count,
   }
 }

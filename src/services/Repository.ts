@@ -18,7 +18,8 @@ export interface Book {
 export interface Series {
   id: number
   name: string
-  top: boolean
+  top?: boolean
+  bookCount?: number
 }
 
 export interface Tag {
@@ -72,6 +73,7 @@ export async function updateBookDetail(
   found.tags = tags
   found.tagsChecked = true
   found.writer = writers
+  found.writerChecked = true
   writeBookLock.release()
   saveBooks()
 }
@@ -112,6 +114,15 @@ export async function switchTopSeries(id: number) {
   if (!found) return
   await writeSeriesLock.acquireAsync()
   found.top = !found.top
+  writeSeriesLock.release()
+  saveSeries()
+}
+
+export async function updateSeriesBookCount(id: number, count: number) {
+  const found = state.series.find(s => s.id == id)
+  if (!found) return
+  await writeSeriesLock.acquireAsync()
+  found.bookCount = count
   writeSeriesLock.release()
   saveSeries()
 }
