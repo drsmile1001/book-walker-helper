@@ -40,50 +40,47 @@
         </div>
       </div>
       <template v-if="seriesCollection.length">
-        <template v-for="series in seriesCollection" :key="series.id">
-          <BookList
-            :title="series.seriesName"
-            :seriesId="series.id"
-            :top="series.top"
-            :tags="series.tags"
-            :writers="series.writers"
-            :ownCount="series.books.length"
-            :seriesCount="series.seriesCount"
-          >
-            <BookEntry v-for="book in series.books" :key="book.id" :book="book">
-            </BookEntry>
-          </BookList>
-        </template>
+        <BookList
+          v-for="series in seriesCollection"
+          :key="series.id"
+          :title="series.seriesName"
+          :books="series.books"
+          :seriesId="series.id"
+          :top="series.top"
+          :tags="series.tags"
+          :writers="series.writers"
+          :ownCount="series.books.length"
+          :seriesCount="series.seriesCount"
+        />
       </template>
 
-      <template v-if="noSeries.length">
-        <BookList title="非系列書">
-          <BookEntry v-for="book in noSeries" :key="book.id" :book="book">
-          </BookEntry>
-        </BookList>
-      </template>
+      <BookList v-if="noSeries.length" title="非系列書" :books="noSeries" />
+      <BookList
+        v-if="notFounds.length"
+        title="找不到詳細資料"
+        :books="notFounds"
+      />
+      <BookList
+        v-if="loadingSeries.length"
+        title="尚未解析詳細資料"
+        :books="loadingSeries"
+      />
 
-      <template v-if="loadingSeries.length">
-        <BookList title="尚未解析系列">
-          <BookEntry v-for="book in loadingSeries" :key="book.id" :book="book">
-          </BookEntry>
-        </BookList>
-      </template>
       <footer>
         <div
           class="border-t border-gray-200 py-8 text-sm text-gray-500 text-center sm:text-left"
         >
-          <sapn class="block sm:inline mr-4">
+          <span class="block sm:inline mr-4">
             Extension made by
             <a href="https://github.com/drsmile1001/book-walker-helper"
               >drsmile.1001</a
             >
-          </sapn>
+          </span>
 
-          <sapn class="block sm:inline mr-4">
+          <span class="block sm:inline mr-4">
             UI design by
             <a href="https://github.com/caxerx">caxerx</a>
-          </sapn>
+          </span>
 
           <span class="block sm:inline mr-4">
             Icons made by srip from
@@ -103,14 +100,22 @@ import { collect, loading, loadingMessage } from "@/services/Collector"
 import { books, series, tags } from "@/services/Repository"
 import lodash from "lodash"
 import BookEntry from "@/components/BookEntry.vue"
-import BookList from "@/components/BookList.vue"
+import BookList from "@/components/Bookshelf.vue"
 
 export default defineComponent({
   name: "App",
   components: { BookEntry, BookList },
   setup() {
     const loadingSeries = computed(() =>
-      lodash(books.value.filter((book) => !book.seriesIdChecked))
+      lodash(
+        books.value.filter((book) => !book.seriesIdChecked && !book.notFound)
+      )
+        .orderBy((book) => book.name)
+        .value()
+    )
+
+    const notFounds = computed(() =>
+      lodash(books.value.filter((book) => book.notFound))
         .orderBy((book) => book.name)
         .value()
     )
@@ -161,6 +166,7 @@ export default defineComponent({
       collect,
       loading,
       loadingMessage,
+      notFounds,
       loadingSeries,
       noSeries,
       seriesCollection,
