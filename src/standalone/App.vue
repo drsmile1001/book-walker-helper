@@ -69,26 +69,30 @@
 
       <footer>
         <div
-          class="border-t border-gray-200 py-8 text-sm text-gray-500 text-center sm:text-left"
+          class="border-t border-gray-200 py-8 flex items-center text-sm text-gray-500"
         >
-          <span class="block sm:inline mr-4">
+          <span class="flex-none mr-4">
             Extension made by
             <a href="https://github.com/drsmile1001/book-walker-helper"
               >drsmile.1001</a
             >
           </span>
 
-          <span class="block sm:inline mr-4">
+          <span class="flex-none mr-4">
             UI design by
             <a href="https://github.com/caxerx">caxerx</a>
           </span>
 
-          <span class="block sm:inline mr-4">
+          <span class="flex-none mr-4">
             Icons made by srip from
             <a href="https://www.flaticon.com/" title="Flaticon"
               >www.flaticon.com</a
             >
           </span>
+          <span class="flex-grow"> </span>
+          <button class="flex-none text-red-800" @click="removeAllData">
+            清除所有資料
+          </button>
         </div>
       </footer>
     </div>
@@ -100,7 +104,7 @@ import { computed, defineComponent } from "vue"
 import Notifications from "@/components/Notifications.vue"
 import BookList from "@/components/Bookshelf.vue"
 import { collect, loading, loadingMessage } from "@/services/Collector"
-import { books, series, tags } from "@/services/Repository"
+import { books, series, tags, clear } from "@/services/Repository"
 import lodash from "lodash"
 
 export default defineComponent({
@@ -163,6 +167,11 @@ export default defineComponent({
 
     const alerting = computed(() => !!loadingMessage.value?.error)
 
+    function removeAllData() {
+      if (!confirm("是否清除所有資料？這個動作無法還原？")) return
+      clear()
+    }
+
     return {
       collect,
       loading,
@@ -172,6 +181,7 @@ export default defineComponent({
       noSeries,
       seriesCollection,
       alerting,
+      removeAllData,
     }
   },
 })

@@ -153,3 +153,18 @@ export async function addTags(tags: Tag[]) {
   writeTagsLock.release()
   saveTags()
 }
+
+export async function clear() {
+  await writeBookLock.acquireAsync()
+  await writeSeriesLock.acquireAsync()
+  await writeTagsLock.acquireAsync()
+  state.books = []
+  state.series = []
+  state.tags = []
+  writeTagsLock.release()
+  writeSeriesLock.release()
+  writeBookLock.release()
+  saveBooks()
+  saveSeries()
+  saveTags()
+}
