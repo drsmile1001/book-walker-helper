@@ -14,6 +14,7 @@ import {
   setBookNotFound,
 } from "./Repository"
 import { Result, tryInvokeAsync, tryInvokeSync } from "@/utilities/Try"
+import { pushNotification } from "@/services/NotificationService"
 
 const domParser = new DOMParser()
 
@@ -36,18 +37,18 @@ export async function collect() {
 
   const page1Result = await fetchAvailableBooksPage(1)
   if (page1Result.error) {
-    if (page1Result.error === "NO_LOGIN") {
-      state.loadingMessage = {
-        msg: "解析藏書失敗！請檢查是否已登入 Book Walker 網站。",
-        error: true,
-      }
-    } else if (page1Result.error === "PARSING_ERROR") {
-      state.loadingMessage = {
-        msg:
-          "解析藏書失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。",
-        error: true,
-      }
-    }
+    if (page1Result.error === "NO_LOGIN")
+      pushNotification(
+        "解析藏書失敗！請檢查是否已登入 Book Walker 網站。",
+        "ERROR"
+      )
+    if (page1Result.error === "PARSING_ERROR")
+      pushNotification(
+        "解析藏書失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。",
+        "ERROR"
+      )
+    state.loading = false
+    state.loadingMessage = null
     return
   }
 
@@ -56,11 +57,12 @@ export async function collect() {
   await addBooks(page1Books!)
   const bookCountResult = parseBookPageCount(doc!)
   if (bookCountResult.error) {
-    state.loadingMessage = {
-      msg:
-        "解析藏書總數失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。",
-      error: true,
-    }
+    pushNotification(
+      "解析藏書總數失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。",
+      "ERROR"
+    )
+    state.loading = false
+    state.loadingMessage = null
     return
   }
 
@@ -71,13 +73,15 @@ export async function collect() {
     { length: bookCountResult.value! - 1 },
     (_, i) => i + 2
   )
-  const fetchBooksResults = await parallelMap(
+  await parallelMap(
     bookPages,
     async page => {
       const pageReulst = await fetchAvailableBooksPage(page)
-      if (pageReulst.error) return pageReulst.error
+      if (pageReulst.error) {
+        pushNotification(`載入藏書頁 ${page} 失敗`, "ERROR")
+        return
+      }
       await addBooks(pageReulst.value.books)
-      return null
     },
     5,
     done => {
@@ -87,28 +91,26 @@ export async function collect() {
     }
   )
 
-  if (fetchBooksResults.some(error => error !== null)) {
-    state.loadingMessage = {
-      msg: `解析藏書有部分失敗！請重試。`,
-      error: true,
-    }
-    return
-  }
-
   const bookLackDetails = books.value.filter(
     book => !book.seriesIdChecked || !book.tagsChecked || !book.writerChecked
   )
   const bookLackDetailCount = bookLackDetails.length
 
-  const fetchBookDetailResults = await parallelMap(
+  await parallelMap(
     bookLackDetails,
     async book => {
       const bookDetailResult = await fetchBookDetail(book.id)
       if (bookDetailResult.error === "NOT_FOUND") {
         setBookNotFound(book.id, true)
-        return null
+        return
       }
-      if (bookDetailResult.error) return bookDetailResult.error
+      if (bookDetailResult.error) {
+        pushNotification(
+          `書本 ${book.name} 解析詳細資料失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。`,
+          "ERROR"
+        )
+        return
+      }
       const { seriesId, seriesName, tags, writers } = bookDetailResult.value
       if (seriesId) await addSeries(seriesId, seriesName!)
       await addTags(tags)
@@ -118,7 +120,6 @@ export async function collect() {
         tags.map(t => t.id),
         writers
       )
-      return null
     },
     5,
     done => {
@@ -127,22 +128,20 @@ export async function collect() {
       }
     }
   )
-  if (fetchBookDetailResults.some(e => e !== null)) {
-    state.loadingMessage = {
-      msg: `解析書本詳細資料有部分失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。`,
-      error: true,
-    }
-    return
-  }
 
   const seriesCount = series.value.length
-  const fetchSeriesResults = await parallelMap(
+  await parallelMap(
     series.value,
     async s => {
       const seriesResult = await fetchSeries(s.id)
-      if (seriesResult.error) return seriesResult.error
+      if (seriesResult.error) {
+        pushNotification(
+          `系列 ${s.name} 解析資料失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。`,
+          "ERROR"
+        )
+        return
+      }
       await updateSeriesBookCount(s.id, seriesResult.value.bookCount)
-      return null
     },
     5,
     done => {
@@ -151,13 +150,6 @@ export async function collect() {
       }
     }
   )
-  if (fetchSeriesResults.some(e => e !== null)) {
-    state.loadingMessage = {
-      msg: `解析系列資料有部分失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。`,
-      error: true,
-    }
-    return
-  }
 
   state.loading = false
   state.loadingMessage = null

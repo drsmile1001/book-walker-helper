@@ -1,6 +1,7 @@
 <template>
-  <div class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto p-4 font-google">
+  <div class="bg-gray-100 min-h-screen font-google">
+    <Notifications />
+    <div class="container mx-auto p-4">
       <div class="flex flex-row mb-4">
         <h1 class="text-gray-900 text-3xl font-medium tracking-tight mt-2">
           藏書
@@ -96,15 +97,15 @@
 
 <script lang="ts">
 import { computed, defineComponent } from "vue"
+import Notifications from "@/components/Notifications.vue"
+import BookList from "@/components/Bookshelf.vue"
 import { collect, loading, loadingMessage } from "@/services/Collector"
 import { books, series, tags } from "@/services/Repository"
 import lodash from "lodash"
-import BookEntry from "@/components/BookEntry.vue"
-import BookList from "@/components/Bookshelf.vue"
 
 export default defineComponent({
   name: "App",
-  components: { BookEntry, BookList },
+  components: { Notifications, BookList },
   setup() {
     const loadingSeries = computed(() =>
       lodash(
