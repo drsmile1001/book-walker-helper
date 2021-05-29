@@ -11,9 +11,16 @@ import {
   addTags,
   series,
   updateSeriesBookCount,
+  setBookNotFound,
 } from "./Repository"
+import { Result, tryInvokeAsync, tryInvokeSync } from "@/utilities/Try"
 
 const domParser = new DOMParser()
+
+type PARSING_ERROR = "PARSING_ERROR"
+type NO_LOGIN = "NO_LOGIN"
+type HTTP_ERROR = "HTTP_ERROR"
+type NOT_FOUND = "NOT_FOUND"
 
 const state = reactive({
   loading: false,
@@ -27,41 +34,55 @@ export async function collect() {
   if (state.loading) return
   state.loading = true
 
-  const { doc, books: page1Books, error } = await fetchBooks(1)
-  if (error === "NO_LOGIN") {
-    state.loadingMessage = {
-      msg: "解析藏書失敗！請檢查是否已登入 Book Walker 網站。",
-      error: true,
+  const page1Result = await fetchAvailableBooksPage(1)
+  if (page1Result.error) {
+    if (page1Result.error === "NO_LOGIN") {
+      state.loadingMessage = {
+        msg: "解析藏書失敗！請檢查是否已登入 Book Walker 網站。",
+        error: true,
+      }
+    } else if (page1Result.error === "PARSING_ERROR") {
+      state.loadingMessage = {
+        msg:
+          "解析藏書失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。",
+        error: true,
+      }
     }
     return
-  } else if (error === "PARSING_ERROR") {
+  }
+
+  const { doc, books: page1Books } = page1Result.value
+
+  await addBooks(page1Books!)
+  const bookCountResult = parseBookPageCount(doc!)
+  if (bookCountResult.error) {
     state.loadingMessage = {
       msg:
-        "解析藏書失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。",
+        "解析藏書總數失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。",
       error: true,
     }
     return
   }
 
-  const bookPageCount = parseBookPageCount(doc!)
-  await addBooks(page1Books!)
-
   state.loadingMessage = {
-    msg: `藏書資料載入中 1 / ${bookPageCount}`,
+    msg: `藏書資料載入中 1 / ${bookCountResult.value}`,
   }
-  const bookPages = Array.from({ length: bookPageCount - 1 }, (_, i) => i + 2)
+  const bookPages = Array.from(
+    { length: bookCountResult.value! - 1 },
+    (_, i) => i + 2
+  )
   const fetchBooksResults = await parallelMap(
     bookPages,
     async page => {
-      const { books, error } = await fetchBooks(page)
-      if (!!error) return error
-      await addBooks(books!)
+      const pageReulst = await fetchAvailableBooksPage(page)
+      if (pageReulst.error) return pageReulst.error
+      await addBooks(pageReulst.value.books)
       return null
     },
     5,
     done => {
       state.loadingMessage = {
-        msg: `藏書資料載入中 ${done + 1} / ${bookPageCount}`,
+        msg: `藏書資料載入中 ${done + 1} / ${bookCountResult.value}`,
       }
     }
   )
@@ -79,12 +100,16 @@ export async function collect() {
   )
   const bookLackDetailCount = bookLackDetails.length
 
-  await parallelMap(
+  const fetchBookDetailResults = await parallelMap(
     bookLackDetails,
     async book => {
-      const { seriesId, seriesName, tags, writers } = await fetchBookDetail(
-        book.id
-      )
+      const bookDetailResult = await fetchBookDetail(book.id)
+      if (bookDetailResult.error === "NOT_FOUND") {
+        setBookNotFound(book.id, true)
+        return null
+      }
+      if (bookDetailResult.error) return bookDetailResult.error
+      const { seriesId, seriesName, tags, writers } = bookDetailResult.value
       if (seriesId) await addSeries(seriesId, seriesName!)
       await addTags(tags)
       await updateBookDetail(
@@ -93,6 +118,7 @@ export async function collect() {
         tags.map(t => t.id),
         writers
       )
+      return null
     },
     5,
     done => {
@@ -101,13 +127,22 @@ export async function collect() {
       }
     }
   )
+  if (fetchBookDetailResults.some(e => e !== null)) {
+    state.loadingMessage = {
+      msg: `解析書本詳細資料有部分失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。`,
+      error: true,
+    }
+    return
+  }
 
   const seriesCount = series.value.length
-  await parallelMap(
+  const fetchSeriesResults = await parallelMap(
     series.value,
     async s => {
-      const { bookCount } = await fetchSeries(s.id)
-      await updateSeriesBookCount(s.id, bookCount)
+      const seriesResult = await fetchSeries(s.id)
+      if (seriesResult.error) return seriesResult.error
+      await updateSeriesBookCount(s.id, seriesResult.value.bookCount)
+      return null
     },
     5,
     done => {
@@ -116,27 +151,38 @@ export async function collect() {
       }
     }
   )
+  if (fetchSeriesResults.some(e => e !== null)) {
+    state.loadingMessage = {
+      msg: `解析系列資料有部分失敗！請檢查 Book Walker 網站是否正常，或其版面改版需要更新助手。`,
+      error: true,
+    }
+    return
+  }
 
   state.loading = false
   state.loadingMessage = null
 }
 
-async function fetchBooks(
+async function fetchAvailableBooksPage(
   page: number
-): Promise<{
-  doc?: Document
-  books?: Book[]
-  error?: "NO_LOGIN" | "PARSING_ERROR"
-}> {
-  const response = await ky.get(
-    `https://www.bookwalker.com.tw/member/available_book_list?page=${page}`
-  )
-  if (response.redirected)
-    return {
-      error: "NO_LOGIN",
-    }
-  const html = await response.text()
+): Promise<
+  Result<
+    {
+      doc: Document
+      books: Book[]
+    },
+    NO_LOGIN | PARSING_ERROR
+  >
+> {
   try {
+    const response = await ky.get(
+      `https://www.bookwalker.com.tw/member/available_book_list?page=${page}`
+    )
+    if (response.redirected)
+      return {
+        error: "NO_LOGIN",
+      }
+    const html = await response.text()
     const doc = domParser.parseFromString(html, "text/html")
     const books = Array.from(
       doc.getElementById("order_book")!.getElementsByClassName("buy_info")
@@ -153,37 +199,58 @@ async function fetchBooks(
       }
     })
     return {
-      doc,
-      books,
+      value: {
+        doc,
+        books,
+      },
     }
   } catch (error) {
-    console.error("解析藏書錯誤", error)
+    console.error(`獲取藏書頁 ${page} 錯誤`, error)
     return {
       error: "PARSING_ERROR",
     }
   }
 }
 
-function parseBookPageCount(doc: Document) {
-  return parseInt(
-    doc.getElementsByClassName("bw_pagination")[0].lastElementChild!
-      .previousElementSibling!.firstElementChild!.innerHTML
+function parseBookPageCount(doc: Document): Result<number, PARSING_ERROR> {
+  const parseResult = tryInvokeSync(() =>
+    parseInt(
+      doc.getElementsByClassName("bw_pagination")[0].lastElementChild!
+        .previousElementSibling!.firstElementChild!.innerHTML
+    )
   )
+  if (!parseResult.error) return parseResult
+  console.error(`解析藏書總量失敗`, doc, parseResult.error.catched)
+  return {
+    error: "PARSING_ERROR",
+  }
 }
 
 async function fetchBookDetail(
   id: number
-): Promise<{
-  seriesId: number | null
-  seriesName: string | null
-  tags: Tag[]
-  writers: string[]
-}> {
-  const html = await ky
-    .get(`https://www.bookwalker.com.tw/product/${id}`)
-    .text()
-  const doc = domParser.parseFromString(html, "text/html")
-  try {
+): Promise<
+  Result<
+    {
+      seriesId: number | null
+      seriesName: string | null
+      tags: Tag[]
+      writers: string[]
+    },
+    PARSING_ERROR | HTTP_ERROR | NOT_FOUND
+  >
+> {
+  const html = await tryInvokeAsync(() =>
+    ky.get(`https://www.bookwalker.com.tw/product/${id}`).text()
+  )
+  if (html.error) {
+    console.error(`獲取書本${id}詳細資料時發生網路錯誤`, html.error.catched)
+    return {
+      error: "HTTP_ERROR",
+    }
+  }
+  const doc = domParser.parseFromString(html.value, "text/html")
+
+  const parseResult = tryInvokeSync(() => {
     const seriesAnchor = doc.getElementById("breadcrumb_list")!
       .firstElementChild!.lastElementChild!.previousElementSibling!
       .firstElementChild! as HTMLAnchorElement
@@ -225,28 +292,50 @@ async function fetchBookDetail(
       tags,
       writers,
     }
-  } catch (error) {
-    console.error(
-      "解析詳細資料錯誤",
-      doc,
-      doc.getElementById("breadcrumb_list")
-    )
-    throw error
+  })
+
+  if (!parseResult.error) return parseResult
+
+  const check404 = tryInvokeSync(() =>
+    Array.from(doc.head.getElementsByTagName("meta"))
+      .find(m => m.name === "keywords")!
+      .content.includes("404")
+  )
+  if (!check404.error && check404.value)
+    return {
+      error: "NOT_FOUND",
+    }
+  return {
+    error: "PARSING_ERROR",
   }
 }
 
 async function fetchSeries(
   id: number
-): Promise<{
-  bookCount: number
-}> {
-  const html = await ky
-    .get(`https://www.bookwalker.com.tw/search?series=${id}`)
-    .text()
-  const doc = domParser.parseFromString(html, "text/html")
-  const paginationInfo = doc.getElementsByClassName("bw_more")[0].innerHTML!
-  const count = parseInt(paginationInfo.match(/共(\d+)筆/)![1])
-  return {
-    bookCount: count,
+): Promise<
+  Result<
+    {
+      bookCount: number
+    },
+    PARSING_ERROR
+  >
+> {
+  try {
+    const html = await ky
+      .get(`https://www.bookwalker.com.tw/search?series=${id}`)
+      .text()
+    const doc = domParser.parseFromString(html, "text/html")
+    const paginationInfo = doc.getElementsByClassName("bw_more")[0].innerHTML!
+    const count = parseInt(paginationInfo.match(/共(\d+)筆/)![1])
+    return {
+      value: {
+        bookCount: count,
+      },
+    }
+  } catch (error) {
+    console.error(`獲取系列 ${id} 的詳細資料發生例外`, error)
+    return {
+      error: "PARSING_ERROR",
+    }
   }
 }

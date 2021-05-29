@@ -13,6 +13,7 @@ export interface Book {
   writer?: string[]
   favorite?: boolean
   bookmark?: boolean
+  notFound?: boolean
 }
 
 export interface Series {
@@ -74,6 +75,15 @@ export async function updateBookDetail(
   found.tagsChecked = true
   found.writer = writers
   found.writerChecked = true
+  writeBookLock.release()
+  saveBooks()
+}
+
+export async function setBookNotFound(bookId: number, notFound: boolean) {
+  const found = state.books.find(b => b.id === bookId)
+  if (!found) return
+  await writeBookLock.acquireAsync()
+  found.notFound = notFound
   writeBookLock.release()
   saveBooks()
 }
