@@ -73,6 +73,7 @@ export async function collect() {
     { length: bookCountResult.value! - 1 },
     (_, i) => i + 2
   )
+
   await parallelMap(
     bookPages,
     async page => {
@@ -168,7 +169,7 @@ async function fetchAvailableBooksPage(
 > {
   try {
     const response = await ky.get(
-      `https://www.bookwalker.com.tw/member/available_book_list?page=${page}`
+      `https://www.bookwalker.com.tw/bookcase/available_book_list/all?d=1&page=${page}`
     )
     if (response.redirected)
       return {
@@ -176,13 +177,20 @@ async function fetchAvailableBooksPage(
       }
     const html = await response.text()
     const doc = domParser.parseFromString(html, "text/html")
+
     const books = Array.from(
-      doc.getElementById("order_book")!.getElementsByClassName("buy_info")
-    ).map(row => {
-      const name = row.getElementsByClassName("buy_book")[0].innerHTML
+      doc.getElementsByClassName("readerBookList")[0].children
+    ).map(bookElement => {
+      const name = bookElement.getElementsByClassName("readerBookName")[0]
+        .innerHTML
+
       const id = parseInt(
-        (row.getElementsByClassName("bookbor")[0] as HTMLImageElement).src
-          .substring("https://image.bookwalker.com.tw/upload/product/".length)
+        bookElement
+          .getElementsByClassName("readerBooks")[0]
+          .children[0].getElementsByTagName("a")[0]
+          .href.substring(
+            "https://www.bookwalker.com.tw/mobile/browserViewer/".length
+          )
           .split("/")[0]
       )
       return <Book>{
@@ -207,8 +215,13 @@ async function fetchAvailableBooksPage(
 function parseBookPageCount(doc: Document): Result<number, PARSING_ERROR> {
   const parseResult = tryInvokeSync(() =>
     parseInt(
-      doc.getElementsByClassName("bw_pagination")[0].lastElementChild!
-        .previousElementSibling!.firstElementChild!.innerHTML
+      (doc
+        .getElementsByClassName("pageNumBox")[0]
+        .getElementsByTagName("select")[0]
+        .lastElementChild as HTMLOptionElement).value.substring(
+        "https://www.bookwalker.com.tw/bookcase/available_book_list/all?d=1&page="
+          .length
+      )
     )
   )
   if (!parseResult.error) return parseResult
