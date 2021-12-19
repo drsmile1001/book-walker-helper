@@ -258,15 +258,10 @@ async function fetchBookDetail(
   const parseResult = tryInvokeSync(() => {
     const seriesAnchor = doc.getElementById("breadcrumb_list")!
       .firstElementChild!.lastElementChild!.previousElementSibling!
-      .firstElementChild! as HTMLAnchorElement
-    const isSeries = seriesAnchor.href.includes("/search/?series=")
+      .lastElementChild as HTMLAnchorElement
+    const isSeries = seriesAnchor.href.includes("search?series")
     const seriesId = isSeries
-      ? parseInt(
-          new URL(
-            seriesAnchor.href,
-            "https://www.bookwalker.com.tw"
-          ).searchParams.get("series")!
-        )
+      ? parseInt(new URL(seriesAnchor.href).searchParams.get("series")!)
       : null
     const seriesName = seriesAnchor.innerHTML.substring(
       0,
