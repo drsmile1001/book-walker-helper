@@ -1,7 +1,20 @@
 <template>
   <li class="relative">
     <div
-      class="group block object-contain w-full aspect-w-10 aspect-h-15 rounded-lg bg-gray-100 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-gray-100 focus-within:ring-indigo-500 overflow-hidden"
+      class="
+        group
+        block
+        object-contain
+        w-full
+        aspect-w-10 aspect-h-15
+        rounded-lg
+        bg-gray-100
+        focus-within:ring-2
+        focus-within:ring-offset-2
+        focus-within:ring-offset-gray-100
+        focus-within:ring-indigo-500
+        overflow-hidden
+      "
     >
       <a
         :href="readUrl"
@@ -84,7 +97,7 @@ export default defineComponent({
   setup(props) {
     const imageUrl = computed(
       () =>
-        `https://image.bookwalker.com.tw/upload/product/${props.book.id}/${props.book.id}_1.jpg`
+        `https://taiwan-image.bookwalker.com.tw/product/${props.book.id}/${props.book.id}_1.jpg`
     )
 
     const readUrl = computed(

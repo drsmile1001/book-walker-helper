@@ -10,13 +10,32 @@
           <a
             class="px-3 py-2 text-blue-500"
             target="_blank"
-            href="https://www.bookwalker.com.tw/member/available_book_list"
-            >Book Walker 個人專頁</a
+            href="https://www.bookwalker.com.tw/bookcase/available_book_list"
+            >Book Walker 個人書櫃</a
           >
           <button
             v-if="!loading"
             type="button"
-            class="flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-max"
+            class="
+              flex
+              items-center
+              px-3
+              py-2
+              border border-transparent
+              text-sm
+              leading-4
+              font-medium
+              rounded-md
+              shadow-sm
+              text-white
+              bg-indigo-600
+              hover:bg-indigo-700
+              focus:outline-none
+              focus:ring-2
+              focus:ring-offset-2
+              focus:ring-indigo-500
+              w-max
+            "
             @click="collect"
           >
             重新讀取藏書
@@ -69,7 +88,13 @@
 
       <footer>
         <div
-          class="border-t border-gray-200 py-8 flex items-center text-sm text-gray-500"
+          class="
+            border-t border-gray-200
+            py-8
+            flex
+            items-center
+            text-sm text-gray-500
+          "
         >
           <span class="flex-none mr-4">
             Extension made by
