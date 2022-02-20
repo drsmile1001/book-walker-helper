@@ -36,7 +36,7 @@
               focus:ring-indigo-500
               w-max
             "
-            @click="collect"
+            @click="collectBooks"
           >
             重新讀取藏書
           </button>
@@ -59,6 +59,14 @@
           </div>
         </div>
       </div>
+      <BookList
+        v-if="lastReadBooks.length"
+        title="最近閱讀"
+        :books="lastReadBooks"
+        :showCount="false"
+        :showshowSeriesLinkIfIsSeries="true"
+      />
+
       <template v-if="seriesCollection.length">
         <BookList
           v-for="series in seriesCollection"
@@ -85,7 +93,28 @@
         title="尚未解析詳細資料"
         :books="loadingSeries"
       />
-
+      <button
+        class="
+          fixed
+          right-10
+          bottom-10
+          px-3
+          py-2
+          border border-transparent
+          text-sm
+          font-medium
+          rounded-md
+          shadow-sm
+          text-white
+          bg-green-300
+          hover:bg-green-400
+          focus:outline-none
+          w-max
+        "
+        @click="toTop"
+      >
+        Top
+      </button>
       <footer>
         <div
           class="
@@ -125,17 +154,36 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent } from "vue"
+import { computed, defineComponent, reactive } from "vue"
 import Notifications from "@/components/Notifications.vue"
 import BookList from "@/components/Bookshelf.vue"
-import { collect, loading, loadingMessage } from "@/services/Collector"
-import { books, series, tags, clear } from "@/services/Repository"
+import {
+  collect,
+  loading,
+  loadingMessage,
+  fetchLastReadBookIds,
+} from "@/services/Collector"
+import { books, series, tags, clear, Book } from "@/services/Repository"
 import lodash from "lodash"
+import { pushNotification } from "@/services/NotificationService"
 
 export default defineComponent({
   name: "App",
   components: { Notifications, BookList },
   setup() {
+    const state = reactive({
+      lastReadBookIds: [] as number[],
+    })
+
+    const lastReadBooks = computed(
+      () =>
+        lodash(state.lastReadBookIds)
+          .map((id) => books.value.find((b) => b.id == id))
+          .filter((b) => !!b)
+          .take(10)
+          .value() as Book[]
+    )
+
     const loadingSeries = computed(() =>
       lodash(
         books.value.filter((book) => !book.seriesIdChecked && !book.notFound)
@@ -197,8 +245,28 @@ export default defineComponent({
       clear()
     }
 
+    async function collectBooks() {
+      await collect()
+      await loadLastReadBooks()
+    }
+
+    async function loadLastReadBooks() {
+      const result = await fetchLastReadBookIds()
+      if (result.value) {
+        state.lastReadBookIds = result.value
+      } else {
+        pushNotification("載入最近讀取藏書失敗！", "ERROR")
+      }
+    }
+
+    loadLastReadBooks()
+
+    function toTop() {
+      document.body.children[0].scrollIntoView()
+    }
+
     return {
-      collect,
+      collectBooks,
       loading,
       loadingMessage,
       notFounds,
@@ -207,6 +275,9 @@ export default defineComponent({
       seriesCollection,
       alerting,
       removeAllData,
+      loadLastReadBooks,
+      lastReadBooks,
+      toTop,
     }
   },
 })

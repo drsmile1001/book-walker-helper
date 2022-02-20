@@ -339,3 +339,32 @@ async function fetchSeries(
     }
   }
 }
+
+export async function fetchLastReadBookIds(): Promise<
+  Result<number[], PARSING_ERROR>
+> {
+  try {
+    const html = await ky
+      .get(
+        "https://www.bookwalker.com.tw/bookcase/available_book_list?sort=4&d=1"
+      )
+      .text()
+    const doc = domParser.parseFromString(html, "text/html")
+    console.log(doc.getElementsByClassName("readerBookList")[0])
+    const ids = Array.from(
+      doc
+        .getElementsByClassName("readerBookList")[0]
+        .getElementsByClassName("inputCheck")
+    ).map(i => {
+      const id = parseInt((i as HTMLInputElement).value)
+      return id
+    })
+    return {
+      value: ids,
+    }
+  } catch (error) {
+    return {
+      error: "PARSING_ERROR",
+    }
+  }
+}

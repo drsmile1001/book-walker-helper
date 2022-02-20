@@ -1,7 +1,16 @@
 <template>
   <div class="bg-white mb-6 rounded-lg">
     <div
-      class="flex items-center rounded-t-lg p-2 px-4 border-b border-gray-200 mb-2 bg-gray-50"
+      class="
+        flex
+        items-center
+        rounded-t-lg
+        p-2
+        px-4
+        border-b border-gray-200
+        mb-2
+        bg-gray-50
+      "
     >
       <svg
         v-if="seriesId"
@@ -20,10 +29,11 @@
           d="M8,11H11V21H13V11H16L12,7L8,11M4,3V5H20V3H4Z"
         />
       </svg>
-      <h2 class="flex-grow ml-2 font-normal text-gray-500">
+      <h2 class="flex-grow ml-2 font-normal text-gray-500" ref="titleRef">
         {{ seriesId ? `${title} 系列` : title }}
       </h2>
       <span
+        v-if="showCount"
         class="flex-none mx-1 font-normal text-sm"
         :class="notComplete ? ' text-green-500' : 'text-gray-500'"
       >
@@ -52,9 +62,25 @@
     <div class="px-4 pb-4">
       <ul
         role="list"
-        class="grid gap-y-8 grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-x-4 md:gap-x-6 xl:gap-x-8"
+        class="
+          grid
+          gap-y-8
+          grid-cols-2
+          sm:grid-cols-4
+          md:grid-cols-6
+          lg:grid-cols-8
+          xl:grid-cols-10
+          gap-x-4
+          md:gap-x-6
+          xl:gap-x-8
+        "
       >
-        <BookEntry v-for="book in books" :key="book.id" :book="book" />
+        <BookEntry
+          v-for="book in books"
+          :key="book.id"
+          :book="book"
+          :showSeriesLinkIfIsSeries="showshowSeriesLinkIfIsSeries"
+        />
       </ul>
     </div>
     <div class="rounded-d-lg p-2 pl-4 border-b border-gray-200 mb-2 bg-gray-50">
@@ -74,10 +100,14 @@
 
 
 <script lang="ts">
-import { computed, defineComponent, PropType } from "vue"
+import { computed, defineComponent, PropType, ref, watchEffect } from "vue"
 import BookEntry from "@/components/BookEntry.vue"
 import { switchTopSeries } from "@/services/Repository"
 import { Book } from "@/services/Repository"
+import {
+  clearHighlightSeries,
+  highlightSerieId,
+} from "@/services/BookShalfScrollingState"
 
 export default defineComponent({
   name: "BookList",
@@ -109,8 +139,17 @@ export default defineComponent({
     seriesCount: {
       type: Number,
     },
+    showCount: {
+      type: Boolean,
+      default: true,
+    },
+    showshowSeriesLinkIfIsSeries: {
+      type: Boolean,
+      default: false,
+    },
   },
   setup(props) {
+    const titleRef = ref(null as HTMLElement | null)
     const seriesShopUrl = computed(() =>
       props.seriesId
         ? `https://www.bookwalker.com.tw/search?series=${props.seriesId}`
@@ -120,7 +159,20 @@ export default defineComponent({
     const notComplete = computed(
       () => !!props.seriesCount && props.seriesCount > props.books.length
     )
+
+    watchEffect(() => {
+      if (
+        highlightSerieId === null ||
+        highlightSerieId.value !== props.seriesId
+      )
+        return
+      console.log(titleRef.value)
+      titleRef.value!.scrollIntoView()
+      clearHighlightSeries()
+    })
+
     return {
+      titleRef,
       switchTopSeries,
       seriesShopUrl,
       notComplete,

@@ -72,6 +72,17 @@
           d="M17,18L12,15.82L7,18V5H17M17,3H7A2,2 0 0,0 5,5V21L12,18L19,21V5C19,3.89 18.1,3 17,3Z"
         />
       </svg>
+      <svg
+        v-if="showshowSeriesLink"
+        class="w-5 h-5 text-blue-400 cursor-pointer hover:opacity-75"
+        viewBox="0 0 24 24"
+        @click="showshowSeries"
+      >
+        <path
+          fill="currentColor"
+          d="M19,18H9A2,2 0 0,1 7,16V4A2,2 0 0,1 9,2H10V7L12,5.5L14,7V2H19A2,2 0 0,1 21,4V16A2,2 0 0,1 19,18M17,20V22H5A2,2 0 0,1 3,20V6H5V20H17Z"
+        />
+      </svg>
     </div>
     <p class="block text-sm text-gray-900">
       <a :href="readUrl" target="_blank">
@@ -85,6 +96,7 @@
 <script lang="ts">
 import { Book, switchFavorite, switchBookmark } from "@/services/Repository"
 import { computed, defineComponent, PropType } from "vue"
+import { setHighlightSerie } from "@/services/BookShalfScrollingState"
 
 export default defineComponent({
   name: "Book",
@@ -92,6 +104,10 @@ export default defineComponent({
     book: {
       type: Object as PropType<Book>,
       required: true,
+    },
+    showSeriesLinkIfIsSeries: {
+      type: Boolean,
+      default: false,
     },
   },
   setup(props) {
@@ -108,12 +124,22 @@ export default defineComponent({
       () => `https://www.bookwalker.com.tw/product/${props.book.id}`
     )
 
+    const showshowSeriesLink = computed(
+      () => props.showSeriesLinkIfIsSeries && !!props.book.seriesId
+    )
+
+    function showshowSeries() {
+      if (props.book.seriesId) setHighlightSerie(props.book.seriesId)
+    }
+
     return {
       imageUrl,
       readUrl,
       shopUrl,
       switchFavorite,
       switchBookmark,
+      showshowSeriesLink,
+      showshowSeries,
     }
   },
 })
