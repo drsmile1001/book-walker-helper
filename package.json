@@ -1,6 +1,6 @@
 {
   "name": "book-walker-helper",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service build --mode development --watch",
